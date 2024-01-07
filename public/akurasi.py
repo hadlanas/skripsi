@@ -42,7 +42,7 @@ def predict_lights_by_time(time, k, habit_data):
     waktu_detik = waktu.hour * 3600 + waktu.minute * 60 + waktu.second
     habits = np.array([
         waktu_detik,
-        *[1 if value == 'hidup' else 0 for value in data_uji['-NiN2tSWJrvTG1IWSoCj'].values()]
+        *[1 if value == 'hidup' else 0 for value in data_latih['-NUbhKQusYWmh4qcwaEW'].values()]
     ])
 
     # Menghitung jarak Euclidean hanya berdasarkan waktu dengan semua data dalam habit_data

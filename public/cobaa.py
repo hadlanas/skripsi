@@ -1,10 +1,17 @@
+from flask import Flask, request, jsonify
 from datetime import datetime
 import numpy as np
-import json
+from firebase_admin import credentials, db, initialize_app
 
-# Muat data latih
-with open('C:/skripsi/public/skripsi.json') as json_file:
-    data_latih = json.load(json_file)['DataLatih']
+app = Flask(__name__)
+
+# Initialize Firebase Admin SDK
+cred = credentials.Certificate("serviceAccountKey.json")
+firebase_app = initialize_app(cred, {"databaseURL": "https://skripsi-6a6f2-default-rtdb.firebaseio.com/"})
+
+# Muat data latih dari Firebase
+data_latih_ref = db.reference("DataLatih")
+data_latih = data_latih_ref.get()
 
 # Konversi data latih ke format yang diperlukan
 habit_data_latih = []
@@ -23,10 +30,6 @@ for key, value in data_latih.items():
 
 habit_data_latih = np.array(habit_data_latih)
 
-# Muat data uji
-with open('C:/skripsi/public/skripsi.json') as json_file:
-    data_uji = json.load(json_file)['DataUji']
-
 predicted_data = {}
 k_neighbors = 3
 
@@ -39,7 +42,7 @@ def predict_lights_by_time(time, k, habit_data):
     waktu_detik = waktu.hour * 3600 + waktu.minute * 60 + waktu.second
     habits = np.array([
         waktu_detik,
-        *[1 if value == 'hidup' else 0 for value in data_uji['-NiN2tSWJrvTG1IWSoCj'].values()]
+        *[1 if value == 'hidup' else 0 for value in data_latih['-NUbhKQusYWmh4qcwaEW'].values()]
     ])
 
     # Menghitung jarak Euclidean hanya berdasarkan waktu dengan semua data dalam habit_data
@@ -65,44 +68,21 @@ for key, value in data_uji.items():
     predicted_lights = predict_lights_by_time(waktu, k_neighbors, habit_data_latih)
     predicted_data[key] = predicted_lights
 
-# Inisialisasi matriks kebingungan dan akurasi untuk setiap ruangan
-matriks_kebingungan_ruangan = {}
-akurasi_ruangan = {}
+@app.route('/lamp_status', methods=['GET'])
+def get_lamp_status():
+    waktu_terbaru = datetime.now()
+    formatted_time = waktu_terbaru.strftime("%H:%M:%S")
+    k_neighbors = 3
+    predicted_lights = predict_lights_by_time(formatted_time, k_neighbors, habit_data_latih)
 
-# Loop melalui setiap ruangan
-# Loop melalui setiap ruangan
-lampu_list = ['dapur', 'kamar', 'kamar2', 'ruangtamu', 'teras', 'toilet']
+    status_strings = ["hidup" if status == 1 else "mati" for status in predicted_lights]
 
-lampu_list = ['dapur', 'kamar', 'kamar2', 'ruangtamu', 'teras', 'toilet']
-
-for lampu in lampu_list:
-    actual_lights = [
-        1 if value[lampu] == 'hidup' else 0 for key, value in data_uji.items()
-    ]
-
-    # Assuming predicted_data is a nested dictionary
-    predicted_lights = [predicted_data[key][lampu] for key in predicted_data]
-
-    confusion_matrix = {
-        'true_positive': 0,
-        'false_positive': 0,
-        'true_negative': 0,
-        'false_negative': 0
+    response = {
+        "lamp_status": status_strings
     }
 
-    for i in range(len(actual_lights)):
-        if actual_lights[i] == 1 and predicted_lights[i] == 1:
-            confusion_matrix['true_positive'] += 1
-        elif actual_lights[i] == 0 and predicted_lights[i] == 1:
-            confusion_matrix['false_positive'] += 1
-        elif actual_lights[i] == 0 and predicted_lights[i] == 0:
-            confusion_matrix['true_negative'] += 1
-        elif actual_lights[i] == 1 and predicted_lights[i] == 0:
-            confusion_matrix['false_negative'] += 1
+    return jsonify(response)
 
-    accuracy = (confusion_matrix['true_positive'] + confusion_matrix['true_negative']) / (
-        confusion_matrix['true_positive'] + confusion_matrix['false_positive'] +
-        confusion_matrix['true_negative'] + confusion_matrix['false_negative']
-    )
 
-    print(f'Accuracy for {lampu}: {accuracy}')
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0')

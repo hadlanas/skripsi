@@ -38,7 +38,7 @@ def predict_lights_by_time(time, k, habit_data):
     waktu_detik = waktu.hour * 3600 + waktu.minute * 60 + waktu.second
     habits = np.array([
         waktu_detik,
-        *[1 if value == 'hidup' else 0 for value in data_uji['-NiN2tSWJrvTG1IWSoCj'].values()]
+          *[1 if value == 'hidup' else 0 for value in data_latih['-NUbhKQusYWmh4qcwaEW'].values()]
     ])
 
     # Menghitung jarak Euclidean hanya berdasarkan waktu dengan semua data dalam habit_data
@@ -67,7 +67,7 @@ for key, value in data_uji.items():
 # waktu_terbaru = datetime.now()
 # formatted_time = waktu_terbaru.strftime("%H:%M:%S")
 
-waktubaru = "06:00:20"
+waktubaru = "06:01:29"
 k_neighbors = 3
 predicted_lights = predict_lights_by_time(waktubaru, k_neighbors, habit_data_latih)
 status_strings = ["hidup" if status == 1 else "mati" for status in predicted_lights]
@@ -105,8 +105,15 @@ for key, value in data_uji.items():
 accuracy = (confusion_matrix['true_positive'] + confusion_matrix['true_negative']) / (
             confusion_matrix['true_positive'] + confusion_matrix['false_positive'] +
             confusion_matrix['true_negative'] + confusion_matrix['false_negative'])
+# Perhitungan Recall
+recall = confusion_matrix['true_positive'] / (confusion_matrix['true_positive'] + confusion_matrix['false_negative'])
+
+# Perhitungan Precision
+precision = confusion_matrix['true_positive'] / (confusion_matrix['true_positive'] + confusion_matrix['false_positive'])
 
 print(accuracy)
+print(recall)
+print(precision)
 print(confusion_matrix['true_positive'])
 print(confusion_matrix['false_positive'])
 print(confusion_matrix['true_negative'])
